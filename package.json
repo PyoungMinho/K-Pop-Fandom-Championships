@@ -1,0 +1,22 @@
+{
+  "name": "idol-athletic-championship",
+  "version": "0.1.0",
+  "private": true,
+  "description": "아이돌 가을 운동회 - 팬덤의 화력을 건강하게 증명하는 7일간의 축제",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm -w apps/web run dev",
+    "dev:api": "npm -w apps/api run start:dev",
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:api\"",
+    "build:web": "npm -w apps/web run build",
+    "build:api": "npm -w apps/api run build",
+    "build": "npm run build:web && npm run build:api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.0"
+  }
+}
