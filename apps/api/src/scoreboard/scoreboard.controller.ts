@@ -1,9 +1,12 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Param } from "@nestjs/common";
+import { ScoreboardService } from "./scoreboard.service";
 
 @Controller("scoreboard")
 export class ScoreboardController {
-  @Get()
-  getScoreboard() {
-    return { teams: [], updatedAt: new Date().toISOString() };
+  constructor(private readonly scoreboardService: ScoreboardService) {}
+
+  @Get(":seasonId")
+  getScoreboard(@Param("seasonId") seasonId: string) {
+    return this.scoreboardService.getBySeasonId(seasonId);
   }
 }
