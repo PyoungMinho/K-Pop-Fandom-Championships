@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>디자인 시안 3종 — 아이돌 팬덤 대회</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: #111; }
+
+  /* ───── 탭 네비 ───── */
+  .tab-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 0 24px;
+  }
+  .tab-btn {
+    padding: 16px 28px; font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.4);
+    cursor: pointer; border: none; background: none; border-bottom: 3px solid transparent;
+    transition: all .2s; white-space: nowrap;
+  }
+  .tab-btn.active { color: #fff; border-bottom-color: #fff; }
+  .concept { display: none; }
+  .concept.active { display: block; }
+
+
+  /* ══════════════════════════════════════════
+     A안 — Y2K HOLO  (포토카드 / 홀로그래픽)
+  ══════════════════════════════════════════ */
+  #a { background: #0a0012; min-height: 100vh; overflow: hidden; }
+
+  .a-hero {
+    position: relative; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; overflow: hidden; padding: 80px 24px 48px;
+  }
+
+  /* 배경 홀로 블러 오브 */
+  .a-orb {
+    position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; pointer-events: none;
+  }
+  .a-orb-1 { width: 500px; height: 500px; background: #bf00ff; top: -100px; left: -100px; }
+  .a-orb-2 { width: 400px; height: 400px; background: #00e5ff; bottom: -60px; right: -60px; }
+  .a-orb-3 { width: 300px; height: 300px; background: #ff00a8; top: 40%; left: 40%; }
+
+  /* 그리드 오버레이 */
+  .a-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .a-badge {
+    position: relative; display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
+    border: 1px solid rgba(255,255,255,.25);
+    background: linear-gradient(135deg, rgba(191,0,255,.2), rgba(0,229,255,.2));
+    color: #e0b3ff; letter-spacing: .05em; margin-bottom: 24px;
+  }
+  .a-dot { width: 6px; height: 6px; border-radius: 50%; background: #00ff88; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.5)} }
+
+  .a-title {
+    position: relative; font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(48px, 8vw, 96px); line-height: 1.05; text-align: center;
+    background: linear-gradient(135deg, #fff 0%, #bf00ff 40%, #00e5ff 70%, #ff00a8 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    filter: drop-shadow(0 0 30px rgba(191,0,255,.5));
+    margin-bottom: 16px;
+  }
+
+  .a-sub {
+    color: rgba(255,255,255,.55); font-size: 17px; text-align: center;
+    margin-bottom: 48px; letter-spacing: .02em;
+  }
+
+  /* 포토카드 팀 갤러리 */
+  .a-cards {
+    display: flex; gap: 16px; overflow-x: auto; padding: 8px 24px;
+    scrollbar-width: none; position: relative; z-index: 1;
+    max-width: 900px; margin: 0 auto;
+  }
+  .a-card {
+    flex: 0 0 130px; height: 190px; border-radius: 16px; position: relative; overflow: hidden;
+    border: 1px solid rgba(255,255,255,.15); cursor: pointer;
+    transition: transform .25s, box-shadow .25s;
+  }
+  .a-card:hover { transform: translateY(-8px) rotate(-1.5deg); box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+  .a-card-bg { position: absolute; inset: 0; opacity: .85; }
+  .a-card-holo {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,.15) 50%, transparent 70%);
+    animation: holoShift 3s ease-in-out infinite;
+  }
+  @keyframes holoShift {
+    0%,100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .a-card-name {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 32px 12px 12px;
+    background: linear-gradient(transparent, rgba(0,0,0,.75));
+    color: #fff; font-size: 13px; font-weight: 700; text-align: center;
+  }
+  .a-card-rank {
+    position: absolute; top: 10px; right: 10px;
+    width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3); color: #fff;
+    font-size: 11px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+  }
+
+  .a-cta {
+    display: flex; gap: 12px; margin-top: 40px; position: relative; z-index: 1;
+  }
+  .a-btn-primary {
+    padding: 16px 40px; border-radius: 999px; border: none; cursor: pointer;
+    font-size: 16px; font-weight: 800; letter-spacing: .03em;
+    background: linear-gradient(135deg, #bf00ff, #00e5ff);
+    color: #fff; box-shadow: 0 8px 30px rgba(191,0,255,.4);
+    transition: all .2s;
+  }
+  .a-btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(191,0,255,.6); }
+  .a-btn-secondary {
+    padding: 16px 40px; border-radius: 999px; cursor: pointer;
+    font-size: 16px; font-weight: 800; letter-spacing: .03em;
+    background: transparent; color: rgba(255,255,255,.7);
+    border: 1.5px solid rgba(255,255,255,.25); transition: all .2s;
+  }
+  .a-btn-secondary:hover { border-color: rgba(255,255,255,.6); color: #fff; }
+
+  /* 스코어 프리뷰 */
+  .a-scorebox {
+    position: relative; z-index: 1; width: 100%; max-width: 480px; margin-top: 48px;
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px; padding: 20px 24px; backdrop-filter: blur(12px);
+  }
+  .a-score-title { color: rgba(255,255,255,.5); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 16px; }
+  .a-score-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .a-score-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .a-score-name { color: #fff; font-weight: 700; font-size: 14px; flex: 1; }
+  .a-score-bar-wrap { flex: 2; height: 6px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; }
+  .a-score-bar { height: 100%; border-radius: 999px; }
+  .a-score-num { color: rgba(255,255,255,.5); font-size: 12px; font-weight: 700; min-width: 50px; text-align: right; }
+
+
+  /* ══════════════════════════════════════════
+     B안 — BUBBLEGUM POP (키치 파스텔 맥시멀리즘)
+  ══════════════════════════════════════════ */
+  #b { background: #FFE8F4; min-height: 100vh; }
+
+  .b-hero {
+    position: relative; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden; padding: 80px 24px 60px;
+  }
+
+  /* 버블 배경 */
+  .b-bubble {
+    position: absolute; border-radius: 50%; pointer-events: none; opacity: .4;
+  }
+  .b-b1 { width: 300px; height: 300px; background: #FFB3DE; top: -80px; right: -60px; }
+  .b-b2 { width: 200px; height: 200px; background: #B3E5FC; bottom: 80px; left: -40px; }
+  .b-b3 { width: 150px; height: 150px; background: #FFE082; top: 30%; left: 5%; }
+  .b-b4 { width: 100px; height: 100px; background: #B39DDB; bottom: 20%; right: 10%; }
+
+  /* 스티커 데코 */
+  .b-sticker { position: absolute; font-size: 2rem; pointer-events: none; animation: bFloat 3s ease-in-out infinite; }
+  @keyframes bFloat { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-12px) rotate(5deg)} }
+  .b-s1 { top: 100px; left: 8%; animation-delay: 0s; font-size: 2.5rem; }
+  .b-s2 { top: 140px; right: 10%; animation-delay: .4s; }
+  .b-s3 { top: 50%; left: 5%; animation-delay: .8s; }
+  .b-s4 { bottom: 150px; right: 8%; animation-delay: 1.2s; font-size: 2.5rem; }
+  .b-s5 { bottom: 200px; left: 12%; animation-delay: .6s; }
+
+  .b-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #fff; border-radius: 999px; padding: 8px 20px;
+    font-size: 13px; font-weight: 800; color: #E91E8C;
+    box-shadow: 3px 3px 0 #E91E8C; margin-bottom: 28px;
+    border: 2px solid #E91E8C;
+  }
+
+  .b-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(44px, 9vw, 88px); line-height: 1.05; text-align: center;
+    color: #1a0025; margin-bottom: 12px; position: relative; z-index: 1;
+  }
+  .b-title span {
+    display: inline-block;
+    background: linear-gradient(135deg, #FF4DA6 0%, #A855F7 50%, #06B6D4 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  /* 텍스트 스티커 느낌 */
+  .b-title-deco {
+    display: inline-block; background: #FFE000; color: #1a0025; padding: 4px 12px;
+    border-radius: 8px; font-family: 'Black Han Sans'; font-size: clamp(20px,3vw,32px);
+    transform: rotate(-2deg); margin-left: 8px; border: 2px solid #1a0025;
+    box-shadow: 3px 3px 0 #1a0025;
+  }
+
+  .b-sub { font-size: 16px; color: #6b2a8a; font-weight: 700; margin-bottom: 36px; text-align: center; }
+
+  /* 팀 버튼 그리드 */
+  .b-teams {
+    display: flex; flex-wrap: wrap; gap: 12px; justify-content: center;
+    max-width: 640px; position: relative; z-index: 1; margin-bottom: 40px;
+  }
+  .b-team-btn {
+    padding: 12px 24px; border-radius: 999px; font-size: 15px; font-weight: 800;
+    border: 2.5px solid currentColor; cursor: pointer; transition: all .15s;
+    box-shadow: 3px 3px 0 currentColor; background: #fff;
+  }
+  .b-team-btn:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 currentColor; }
+  .b-team-btn:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 currentColor; }
+
+  .b-cta {
+    display: flex; gap: 12px; position: relative; z-index: 1; flex-wrap: wrap; justify-content: center;
+  }
+  .b-btn-primary {
+    padding: 18px 48px; border-radius: 16px; border: 3px solid #1a0025; cursor: pointer;
+    font-size: 18px; font-weight: 900; letter-spacing: .02em;
+    background: linear-gradient(135deg, #FF4DA6, #A855F7);
+    color: #fff; box-shadow: 5px 5px 0 #1a0025; transition: all .15s;
+  }
+  .b-btn-primary:hover { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 #1a0025; }
+  .b-btn-primary:active { transform: translate(2px,2px); box-shadow: 2px 2px 0 #1a0025; }
+  .b-btn-secondary {
+    padding: 18px 48px; border-radius: 16px; border: 3px solid #1a0025; cursor: pointer;
+    font-size: 18px; font-weight: 900;
+    background: #fff; color: #1a0025; box-shadow: 5px 5px 0 #1a0025; transition: all .15s;
+  }
+  .b-btn-secondary:hover { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 #1a0025; }
+
+  /* 스코어 카드 */
+  .b-score-section {
+    width: 100%; max-width: 500px; margin-top: 48px; position: relative; z-index: 1;
+  }
+  .b-score-label {
+    display: inline-block; background: #FFE000; color: #1a0025; font-weight: 900; font-size: 14px;
+    padding: 6px 16px; border-radius: 8px; border: 2px solid #1a0025;
+    box-shadow: 3px 3px 0 #1a0025; margin-bottom: 16px; transform: rotate(-1deg);
+  }
+  .b-score-card {
+    background: #fff; border: 2.5px solid #1a0025; border-radius: 20px;
+    box-shadow: 6px 6px 0 #1a0025; padding: 20px 24px;
+  }
+  .b-s-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .b-s-medal { font-size: 22px; width: 32px; flex-shrink: 0; }
+  .b-s-avatar {
+    width: 36px; height: 36px; border-radius: 12px; border: 2px solid #1a0025;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 900; color: #fff; flex-shrink: 0;
+  }
+  .b-s-name { font-weight: 900; font-size: 14px; flex: 1; }
+  .b-s-bar-wrap { flex: 2; height: 12px; background: #f0e8ff; border-radius: 999px; overflow: hidden; border: 1.5px solid #1a0025; }
+  .b-s-bar { height: 100%; border-radius: 999px; }
+  .b-s-score { font-weight: 900; font-size: 13px; min-width: 52px; text-align: right; }
+
+
+  /* ══════════════════════════════════════════
+     C안 — NEON STAGE (콘서트 무대 / 사이버펑크)
+  ══════════════════════════════════════════ */
+  #c { background: #000; min-height: 100vh; }
+
+  .c-hero {
+    position: relative; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden; padding: 80px 24px 60px;
+  }
+
+  /* 스테이지 라이트 */
+  .c-light {
+    position: absolute; top: 0; width: 3px; height: 60vh; opacity: .35;
+    transform-origin: top center; pointer-events: none;
+  }
+  .c-l1 { left: 15%; background: linear-gradient(#ff006e, transparent); transform: rotate(15deg); }
+  .c-l2 { left: 28%; background: linear-gradient(#00d4ff, transparent); transform: rotate(5deg); }
+  .c-l3 { left: 42%; background: linear-gradient(#aaff00, transparent); transform: rotate(-3deg); }
+  .c-l4 { right: 28%; background: linear-gradient(#ff6b00, transparent); transform: rotate(-5deg); }
+  .c-l5 { right: 15%; background: linear-gradient(#bf00ff, transparent); transform: rotate(-15deg); }
+
+  /* 파티클 도트 */
+  .c-dot {
+    position: absolute; border-radius: 50%; pointer-events: none; animation: cDrift linear infinite;
+  }
+  @keyframes cDrift {
+    0% { transform: translateY(0) scale(1); opacity: .8; }
+    100% { transform: translateY(-100vh) scale(0); opacity: 0; }
+  }
+
+  /* 스테이지 플로어 */
+  .c-floor {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
+    background: linear-gradient(transparent, rgba(0,212,255,.03) 50%, rgba(0,212,255,.08));
+    border-top: 1px solid rgba(0,212,255,.15);
+  }
+  .c-floor::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 1px; background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+    animation: scanLine 3s linear infinite;
+  }
+  @keyframes scanLine { 0%{opacity:0} 50%{opacity:1} 100%{opacity:0} }
+
+  .c-badge {
+    position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 20px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase;
+    border: 1px solid #00d4ff; color: #00d4ff;
+    text-shadow: 0 0 10px #00d4ff; box-shadow: 0 0 20px rgba(0,212,255,.2);
+    margin-bottom: 28px; background: rgba(0,212,255,.05);
+  }
+
+  .c-title {
+    position: relative; z-index: 1; font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(52px, 9vw, 100px); line-height: 1; text-align: center; margin-bottom: 16px;
+  }
+  .c-title-line1 {
+    display: block; color: #fff;
+    text-shadow: 0 0 30px rgba(255,255,255,.3), 0 0 80px rgba(0,212,255,.2);
+    letter-spacing: -.02em;
+  }
+  .c-title-line2 {
+    display: block;
+    background: linear-gradient(90deg, #ff006e, #bf00ff, #00d4ff, #aaff00);
+    background-size: 200% auto;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: gradShift 3s linear infinite;
+    filter: drop-shadow(0 0 20px rgba(0,212,255,.6));
+  }
+  @keyframes gradShift { 0%{background-position:0%} 100%{background-position:200%} }
+
+  .c-sub {
+    position: relative; z-index: 1; color: rgba(255,255,255,.45);
+    font-size: 15px; text-align: center; margin-bottom: 48px; letter-spacing: .05em;
+  }
+
+  /* 팀 라이트스틱 */
+  .c-sticks {
+    display: flex; gap: 20px; position: relative; z-index: 1;
+    margin-bottom: 48px; flex-wrap: wrap; justify-content: center;
+  }
+  .c-stick {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
+    transition: transform .2s;
+  }
+  .c-stick:hover { transform: scale(1.1); }
+  .c-stick-bulb {
+    width: 40px; height: 60px; border-radius: 999px 999px 20px 20px; position: relative;
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+  @keyframes glowPulse { 0%,100%{filter:brightness(1) blur(0)} 50%{filter:brightness(1.4) blur(1px)} }
+  .c-stick-handle { width: 8px; height: 32px; background: rgba(255,255,255,.15); border-radius: 4px; }
+  .c-stick-name { color: rgba(255,255,255,.55); font-size: 10px; font-weight: 700; letter-spacing: .05em; }
+
+  .c-cta { display: flex; gap: 16px; position: relative; z-index: 1; flex-wrap: wrap; justify-content: center; }
+  .c-btn-primary {
+    padding: 18px 52px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 17px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
+    background: linear-gradient(135deg, #ff006e, #bf00ff);
+    color: #fff; position: relative; overflow: hidden;
+    box-shadow: 0 8px 32px rgba(255,0,110,.4); transition: all .2s;
+  }
+  .c-btn-primary::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.2) 50%, transparent 100%);
+    transform: translateX(-100%); transition: transform .4s;
+  }
+  .c-btn-primary:hover::before { transform: translateX(100%); }
+  .c-btn-primary:hover { box-shadow: 0 12px 48px rgba(255,0,110,.6); transform: translateY(-2px); }
+  .c-btn-secondary {
+    padding: 18px 52px; border-radius: 8px; cursor: pointer;
+    font-size: 17px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
+    background: transparent; color: #00d4ff; border: 1.5px solid #00d4ff;
+    text-shadow: 0 0 10px #00d4ff; box-shadow: 0 0 20px rgba(0,212,255,.15); transition: all .2s;
+  }
+  .c-btn-secondary:hover { box-shadow: 0 0 30px rgba(0,212,255,.4); background: rgba(0,212,255,.05); }
+
+  /* 랭킹 */
+  .c-ranking {
+    position: relative; z-index: 1; width: 100%; max-width: 500px; margin-top: 56px;
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px; padding: 24px; backdrop-filter: blur(8px);
+  }
+  .c-rank-title {
+    color: rgba(255,255,255,.3); font-size: 11px; font-weight: 700;
+    letter-spacing: .15em; text-transform: uppercase; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .c-rank-title::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.08); }
+  .c-rank-row { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .c-rank-num {
+    font-size: 22px; font-weight: 900; min-width: 32px;
+    background: linear-gradient(135deg, #ff006e, #00d4ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .c-rank-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .c-rank-name { color: #fff; font-weight: 700; font-size: 15px; flex: 1; }
+  .c-rank-bar-wrap { flex: 2; height: 4px; background: rgba(255,255,255,.06); border-radius: 999px; overflow: hidden; }
+  .c-rank-bar { height: 100%; border-radius: 999px; }
+  .c-rank-score { color: rgba(255,255,255,.4); font-size: 12px; font-weight: 700; min-width: 50px; text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- 탭 네비게이션 -->
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('a', this)">
+    ✦ A안 — Y2K Holo
+  </button>
+  <button class="tab-btn" onclick="showTab('b', this)">
+    ✿ B안 — Bubblegum Pop
+  </button>
+  <button class="tab-btn" onclick="showTab('c', this)">
+    ⚡ C안 — Neon Stage
+  </button>
+</nav>
+
+
+<!-- ══════ A안: Y2K HOLO ══════ -->
+<div id="a" class="concept active">
+  <div class="a-hero">
+    <div class="a-orb a-orb-1"></div>
+    <div class="a-orb a-orb-2"></div>
+    <div class="a-orb a-orb-3"></div>
+    <div class="a-grid"></div>
+
+    <div class="a-badge">
+      <span class="a-dot"></span>
+      SEASON 1 · LIVE NOW
+    </div>
+
+    <h1 class="a-title">아이돌<br>팬덤 대회</h1>
+    <p class="a-sub">팬덤의 화력을 증명하는 7일간의 전쟁 ✦</p>
+
+    <!-- 포토카드형 팀 -->
+    <div class="a-cards">
+      <div class="a-card">
+        <div class="a-card-bg" style="background:linear-gradient(135deg,#FF6B35,#FF006E)"></div>
+        <div class="a-card-holo"></div>
+        <div class="a-card-rank">1</div>
+        <div class="a-card-name">스타라이트</div>
+      </div>
+      <div class="a-card">
+        <div class="a-card-bg" style="background:linear-gradient(135deg,#00D4FF,#0055FF)"></div>
+        <div class="a-card-holo"></div>
+        <div class="a-card-rank">2</div>
+        <div class="a-card-name">문라이즈</div>
+      </div>
+      <div class="a-card">
+        <div class="a-card-bg" style="background:linear-gradient(135deg,#FFD166,#FF9900)"></div>
+        <div class="a-card-holo"></div>
+        <div class="a-card-rank">3</div>
+        <div class="a-card-name">썬플라워</div>
+      </div>
+      <div class="a-card">
+        <div class="a-card-bg" style="background:linear-gradient(135deg,#A78BFA,#7C3AED)"></div>
+        <div class="a-card-holo"></div>
+        <div class="a-card-rank">4</div>
+        <div class="a-card-name">오로라</div>
+      </div>
+      <div class="a-card">
+        <div class="a-card-bg" style="background:linear-gradient(135deg,#FB7185,#E11D48)"></div>
+        <div class="a-card-holo"></div>
+        <div class="a-card-rank">5</div>
+        <div class="a-card-name">블레이즈</div>
+      </div>
+    </div>
+
+    <div class="a-cta">
+      <button class="a-btn-primary">지금 참전하기 →</button>
+      <button class="a-btn-secondary">순위 보기</button>
+    </div>
+
+    <div class="a-scorebox">
+      <div class="a-score-title">📡 실시간 순위</div>
+      <div class="a-score-row">
+        <div class="a-score-dot" style="background:#FF6B35;box-shadow:0 0 6px #FF6B35"></div>
+        <div class="a-score-name">스타라이트</div>
+        <div class="a-score-bar-wrap"><div class="a-score-bar" style="width:82%;background:linear-gradient(90deg,#FF6B35,#FF006E)"></div></div>
+        <div class="a-score-num">82,450</div>
+      </div>
+      <div class="a-score-row">
+        <div class="a-score-dot" style="background:#00D4FF;box-shadow:0 0 6px #00D4FF"></div>
+        <div class="a-score-name">문라이즈</div>
+        <div class="a-score-bar-wrap"><div class="a-score-bar" style="width:67%;background:linear-gradient(90deg,#00D4FF,#0055FF)"></div></div>
+        <div class="a-score-num">67,200</div>
+      </div>
+      <div class="a-score-row">
+        <div class="a-score-dot" style="background:#FFD166;box-shadow:0 0 6px #FFD166"></div>
+        <div class="a-score-name">썬플라워</div>
+        <div class="a-score-bar-wrap"><div class="a-score-bar" style="width:51%;background:linear-gradient(90deg,#FFD166,#FF9900)"></div></div>
+        <div class="a-score-num">51,880</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════ B안: BUBBLEGUM POP ══════ -->
+<div id="b" class="concept">
+  <div class="b-hero">
+    <div class="b-bubble b-b1"></div>
+    <div class="b-bubble b-b2"></div>
+    <div class="b-bubble b-b3"></div>
+    <div class="b-bubble b-b4"></div>
+
+    <div class="b-sticker b-s1">🌟</div>
+    <div class="b-sticker b-s2">💖</div>
+    <div class="b-sticker b-s3">✨</div>
+    <div class="b-sticker b-s4">🎀</div>
+    <div class="b-sticker b-s5">🦋</div>
+
+    <div class="b-badge">
+      🔴 LIVE &nbsp;·&nbsp; DAY 5 / 7
+    </div>
+
+    <h1 class="b-title">
+      <span>아이돌 팬덤</span><br/>
+      <span>대회</span>
+      <span class="b-title-deco">시즌1</span>
+    </h1>
+    <p class="b-sub">💫 내 팀이 최고! 클릭으로 증명하자 💫</p>
+
+    <div class="b-teams">
+      <button class="b-team-btn" style="color:#FF4DA6">💖 스타라이트</button>
+      <button class="b-team-btn" style="color:#00B4D8">🩵 문라이즈</button>
+      <button class="b-team-btn" style="color:#FFB300">💛 썬플라워</button>
+      <button class="b-team-btn" style="color:#9C27B0">💜 오로라</button>
+      <button class="b-team-btn" style="color:#F44336">❤️ 블레이즈</button>
+      <button class="b-team-btn" style="color:#03A9F4">💙 스카이돔</button>
+    </div>
+
+    <div class="b-cta">
+      <button class="b-btn-primary">✨ 지금 참전하기</button>
+      <button class="b-btn-secondary">🏆 순위 보기</button>
+    </div>
+
+    <div class="b-score-section">
+      <div class="b-score-label">🔥 실시간 순위</div>
+      <div class="b-score-card">
+        <div class="b-s-row">
+          <div class="b-s-medal">🥇</div>
+          <div class="b-s-avatar" style="background:#FF4DA6">STL</div>
+          <div class="b-s-name">스타라이트</div>
+          <div class="b-s-bar-wrap"><div class="b-s-bar" style="width:82%;background:linear-gradient(90deg,#FF4DA6,#A855F7)"></div></div>
+          <div class="b-s-score" style="color:#FF4DA6">82K</div>
+        </div>
+        <div class="b-s-row">
+          <div class="b-s-medal">🥈</div>
+          <div class="b-s-avatar" style="background:#00B4D8">MNR</div>
+          <div class="b-s-name">문라이즈</div>
+          <div class="b-s-bar-wrap"><div class="b-s-bar" style="width:67%;background:linear-gradient(90deg,#00B4D8,#06B6D4)"></div></div>
+          <div class="b-s-score" style="color:#00B4D8">67K</div>
+        </div>
+        <div class="b-s-row" style="margin-bottom:0">
+          <div class="b-s-medal">🥉</div>
+          <div class="b-s-avatar" style="background:#FFB300">SNF</div>
+          <div class="b-s-name">썬플라워</div>
+          <div class="b-s-bar-wrap"><div class="b-s-bar" style="width:51%;background:linear-gradient(90deg,#FFB300,#FFD166)"></div></div>
+          <div class="b-s-score" style="color:#FFB300">51K</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════ C안: NEON STAGE ══════ -->
+<div id="c" class="concept">
+  <div class="c-hero">
+    <!-- 스테이지 라이트 -->
+    <div class="c-light c-l1"></div>
+    <div class="c-light c-l2"></div>
+    <div class="c-light c-l3"></div>
+    <div class="c-light c-l4"></div>
+    <div class="c-light c-l5"></div>
+    <div class="c-floor"></div>
+
+    <!-- 파티클 -->
+    <div class="c-dot" style="width:3px;height:3px;background:#ff006e;left:20%;bottom:0;animation-duration:4s;animation-delay:0s"></div>
+    <div class="c-dot" style="width:2px;height:2px;background:#00d4ff;left:50%;bottom:0;animation-duration:6s;animation-delay:1s"></div>
+    <div class="c-dot" style="width:4px;height:4px;background:#aaff00;left:75%;bottom:0;animation-duration:5s;animation-delay:2s"></div>
+    <div class="c-dot" style="width:2px;height:2px;background:#bf00ff;left:35%;bottom:0;animation-duration:7s;animation-delay:.5s"></div>
+    <div class="c-dot" style="width:3px;height:3px;background:#ff6b00;left:65%;bottom:0;animation-duration:4.5s;animation-delay:1.5s"></div>
+
+    <div class="c-badge">
+      ⚡ SEASON 1 &nbsp;·&nbsp; LIVE &nbsp;·&nbsp; DAY 5 / 7
+    </div>
+
+    <h1 class="c-title">
+      <span class="c-title-line1">아이돌</span>
+      <span class="c-title-line2">팬덤 대회</span>
+    </h1>
+    <p class="c-sub">팬덤의 화력을 무대 위에서 증명하라</p>
+
+    <!-- 라이트스틱 팀 -->
+    <div class="c-sticks">
+      <div class="c-stick">
+        <div class="c-stick-bulb" style="background:#FF6B35;box-shadow:0 0 20px #FF6B35,0 0 40px rgba(255,107,53,.4)"></div>
+        <div class="c-stick-handle"></div>
+        <div class="c-stick-name">STL</div>
+      </div>
+      <div class="c-stick">
+        <div class="c-stick-bulb" style="background:#00D4FF;box-shadow:0 0 20px #00D4FF,0 0 40px rgba(0,212,255,.4)"></div>
+        <div class="c-stick-handle"></div>
+        <div class="c-stick-name">MNR</div>
+      </div>
+      <div class="c-stick">
+        <div class="c-stick-bulb" style="background:#FFD166;box-shadow:0 0 20px #FFD166,0 0 40px rgba(255,209,102,.4)"></div>
+        <div class="c-stick-handle"></div>
+        <div class="c-stick-name">SNF</div>
+      </div>
+      <div class="c-stick">
+        <div class="c-stick-bulb" style="background:#A78BFA;box-shadow:0 0 20px #A78BFA,0 0 40px rgba(167,139,250,.4)"></div>
+        <div class="c-stick-handle"></div>
+        <div class="c-stick-name">AUR</div>
+      </div>
+      <div class="c-stick">
+        <div class="c-stick-bulb" style="background:#FB7185;box-shadow:0 0 20px #FB7185,0 0 40px rgba(251,113,133,.4)"></div>
+        <div class="c-stick-handle"></div>
+        <div class="c-stick-name">BLZ</div>
+      </div>
+      <div class="c-stick">
+        <div class="c-stick-bulb" style="background:#38BDF8;box-shadow:0 0 20px #38BDF8,0 0 40px rgba(56,189,248,.4)"></div>
+        <div class="c-stick-handle"></div>
+        <div class="c-stick-name">SKD</div>
+      </div>
+    </div>
+
+    <div class="c-cta">
+      <button class="c-btn-primary">지금 참전하기</button>
+      <button class="c-btn-secondary">순위 보기</button>
+    </div>
+
+    <div class="c-ranking">
+      <div class="c-rank-title">실시간 순위</div>
+      <div class="c-rank-row">
+        <div class="c-rank-num">01</div>
+        <div class="c-rank-dot" style="background:#FF6B35;box-shadow:0 0 6px #FF6B35"></div>
+        <div class="c-rank-name">스타라이트</div>
+        <div class="c-rank-bar-wrap"><div class="c-rank-bar" style="width:82%;background:linear-gradient(90deg,#FF6B35,#FF006E);box-shadow:0 0 8px #FF6B35"></div></div>
+        <div class="c-rank-score">82,450</div>
+      </div>
+      <div class="c-rank-row">
+        <div class="c-rank-num">02</div>
+        <div class="c-rank-dot" style="background:#00D4FF;box-shadow:0 0 6px #00D4FF"></div>
+        <div class="c-rank-name">문라이즈</div>
+        <div class="c-rank-bar-wrap"><div class="c-rank-bar" style="width:67%;background:linear-gradient(90deg,#00D4FF,#0055FF);box-shadow:0 0 8px #00D4FF"></div></div>
+        <div class="c-rank-score">67,200</div>
+      </div>
+      <div class="c-rank-row" style="margin-bottom:0">
+        <div class="c-rank-num">03</div>
+        <div class="c-rank-dot" style="background:#FFD166;box-shadow:0 0 6px #FFD166"></div>
+        <div class="c-rank-name">썬플라워</div>
+        <div class="c-rank-bar-wrap"><div class="c-rank-bar" style="width:51%;background:linear-gradient(90deg,#FFD166,#FF9900);box-shadow:0 0 8px #FFD166"></div></div>
+        <div class="c-rank-score">51,880</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function showTab(id, btn) {
+  document.querySelectorAll('.concept').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

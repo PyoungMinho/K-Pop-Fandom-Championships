@@ -16,17 +16,35 @@ import { NominationModule } from "./nomination/nomination.module";
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: "postgres" as const,
-        host: config.get<string>("DB_HOST", "localhost"),
-        port: config.get<number>("DB_PORT", 5433),
-        username: config.get<string>("DB_USERNAME", "idol"),
-        password: config.get<string>("DB_PASSWORD", "idol_secret"),
-        database: config.get<string>("DB_DATABASE", "idol_championship"),
-        entities: [__dirname + "/**/*.entity{.ts,.js}"],
-        synchronize: config.get<string>("NODE_ENV") !== "production",
-        logging: config.get<string>("NODE_ENV") !== "production",
-      }),
+      useFactory: (config: ConfigService) => {
+        const databaseUrl = config.get<string>("DATABASE_URL");
+        const isProd = config.get<string>("NODE_ENV") === "production";
+
+        // Railway/클라우드: DATABASE_URL 하나로 연결
+        if (databaseUrl) {
+          return {
+            type: "postgres" as const,
+            url: databaseUrl,
+            ssl: isProd ? { rejectUnauthorized: false } : false,
+            entities: [__dirname + "/**/*.entity{.ts,.js}"],
+            synchronize: !isProd,
+            logging: !isProd,
+          };
+        }
+
+        // 로컬 개발: 개별 환경변수 사용
+        return {
+          type: "postgres" as const,
+          host: config.get<string>("DB_HOST", "localhost"),
+          port: config.get<number>("DB_PORT", 5433),
+          username: config.get<string>("DB_USERNAME", "idol"),
+          password: config.get<string>("DB_PASSWORD", "idol_secret"),
+          database: config.get<string>("DB_DATABASE", "idol_championship"),
+          entities: [__dirname + "/**/*.entity{.ts,.js}"],
+          synchronize: !isProd,
+          logging: !isProd,
+        };
+      },
     }),
     AuthModule,
     AdminModule,

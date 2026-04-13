@@ -132,6 +132,54 @@ export class AdminService {
     return { hidden: ids.length };
   }
 
+  // ═══════════ Public ═══════════
+
+  async getActiveSeason() {
+    const season = await this.seasonRepo.findOne({
+      where: { status: "ACTIVE" as any },
+      relations: ["seasonTeams", "seasonTeams.team"],
+    });
+    if (!season) return null;
+
+    const scoreboard = [...season.seasonTeams]
+      .sort((a, b) => Number(b.totalScore) - Number(a.totalScore))
+      .map((st, i) => ({
+        rank: i + 1,
+        seasonTeamId: st.id,
+        teamId: st.teamId,
+        teamName: st.team?.name ?? "",
+        shortName: st.team?.shortName ?? "",
+        colorCode: st.team?.colorCode ?? "#888",
+        logoUrl: st.team?.logoUrl ?? null,
+        totalScore: Number(st.totalScore),
+      }));
+
+    const start = new Date(season.startDate);
+    const end = new Date(season.endDate);
+    const now = new Date();
+    const totalDays = Math.max(
+      1,
+      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)),
+    );
+    const currentDay = Math.min(
+      totalDays,
+      Math.max(1, Math.ceil((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))),
+    );
+
+    return {
+      id: season.id,
+      title: season.title,
+      seasonNumber: season.seasonNumber,
+      startDate: season.startDate,
+      endDate: season.endDate,
+      phase: season.phase,
+      status: season.status,
+      totalDays,
+      currentDay,
+      scoreboard,
+    };
+  }
+
   // ═══════════ Settings ═══════════
 
   async getAllSettings() {

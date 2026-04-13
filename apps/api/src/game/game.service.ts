@@ -30,12 +30,16 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || "localhost",
-      port: Number(process.env.REDIS_PORT) || 6379,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-    });
+    // Railway: REDIS_URL (redis://...) 우선, 없으면 개별 변수 사용
+    const redisUrl = process.env.REDIS_URL;
+    this.redis = redisUrl
+      ? new Redis(redisUrl, { maxRetriesPerRequest: 3, lazyConnect: true })
+      : new Redis({
+          host: process.env.REDIS_HOST || "localhost",
+          port: Number(process.env.REDIS_PORT) || 6379,
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+        });
     this.redis.connect().catch(() => {
       console.warn("Redis connection failed – falling back to DB-only mode");
     });

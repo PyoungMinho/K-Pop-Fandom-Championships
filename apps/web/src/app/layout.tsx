@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import NavigationWrapper from "@/components/NavigationWrapper";
 
@@ -35,6 +36,14 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-cream text-ink antialiased">
+        {process.env.NEXT_PUBLIC_ADSENSE_PUB_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_PUB_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         <NavigationWrapper />
         {children}
       </body>

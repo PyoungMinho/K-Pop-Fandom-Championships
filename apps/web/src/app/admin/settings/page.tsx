@@ -36,6 +36,23 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6 max-w-2xl">
+        {/* Site Title */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-6 shadow-sm">
+          <h3 className="font-bold text-lg mb-1 flex items-center gap-2">🏷️ 사이트 타이틀</h3>
+          <p className="text-xs text-ink-muted mb-4">메인 페이지 대제목으로 표시됩니다 (비어있으면 시즌 제목 사용)</p>
+          <input
+            value={settings.site_title || ""}
+            onChange={(e) => updateLocal("site_title", e.target.value)}
+            placeholder="예) 2026 K팝 팬덤 대전"
+            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm outline-none focus:border-coral mb-3"
+          />
+          <button onClick={() => handleSave("site_title")}
+            disabled={saving === "site_title"}
+            className="btn-primary text-sm px-6 disabled:opacity-50">
+            {saving === "site_title" ? "저장 중..." : saved === "site_title" ? "✅ 저장됨!" : "저장"}
+          </button>
+        </motion.div>
+
         {/* Winner Song Embed */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-6 shadow-sm">
           <h3 className="font-bold text-lg mb-1 flex items-center gap-2">🎵 우승 팬덤 노래</h3>
