@@ -29,5 +29,26 @@ yarn-error.log*
 # Testing
 coverage/
 
+# OS
+Thumbs.db
+
+# Logs
+logs/
+*.log
+pids/
+*.pid
+*.seed
+
+# Runtime
+tmp/
+temp/
+
+# TypeORM
+*.sqlite
+
+# Docker
+docker-compose.override.yml
+
 # Misc
 *.tsbuildinfo
+.turbo/
