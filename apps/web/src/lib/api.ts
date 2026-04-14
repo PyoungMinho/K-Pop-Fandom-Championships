@@ -27,7 +27,7 @@ export const api = {
   getNominationResults: (seasonId: string) =>
     fetchAPI<import("./types").NominationResult[]>(`/nominations/results/${seasonId}`),
 
-  nominate: (data: { seasonId: string; teamId: string; ipHash: string; fingerprint?: string }) =>
+  nominate: (data: { seasonId: string; teamId: string; fingerprint?: string }) =>
     fetchAPI<{ id: string }>("/nominations", {
       method: "POST",
       body: JSON.stringify(data),

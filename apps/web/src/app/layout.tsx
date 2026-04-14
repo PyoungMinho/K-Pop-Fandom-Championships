@@ -4,11 +4,11 @@ import "./globals.css";
 import NavigationWrapper from "@/components/NavigationWrapper";
 
 export const metadata: Metadata = {
-  title: "아이돌 팬덤 대회",
-  description: "팬덤의 화력을 건강하게 증명하는 7일간의 축제",
+  title: "K-F-C 가을 운동회 | 내 팀을 응원해!",
+  description: "7일간의 팬덤 가을 운동회! 클릭하고, 달리고, 응원하며 우리 팀을 1등으로 만들어요",
   openGraph: {
-    title: "아이돌 팬덤 대회",
-    description: "팬덤의 화력을 건강하게 증명하는 7일간의 축제",
+    title: "K-F-C 가을 운동회 | 내 팀을 응원해!",
+    description: "7일간의 팬덤 가을 운동회! 클릭하고, 달리고, 응원하며 우리 팀을 1등으로 만들어요",
   },
 };
 

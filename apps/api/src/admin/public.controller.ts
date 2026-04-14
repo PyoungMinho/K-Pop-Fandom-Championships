@@ -16,4 +16,10 @@ export class PublicController {
   getActiveSeason() {
     return this.adminService.getActiveSeason();
   }
+
+  /** 현재 활성 게임이벤트 조회 (game/relay/cheer 페이지에서 gameEventId 획득용) */
+  @Get("active-game-event")
+  getActiveGameEvent() {
+    return this.adminService.getActiveGameEvent();
+  }
 }

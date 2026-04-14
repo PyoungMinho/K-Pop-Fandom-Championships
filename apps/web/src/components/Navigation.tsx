@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { publicApi } from "@/lib/public-api";
 
 const NAV_ITEMS = [
   { href: "/", label: "홈", icon: "🏠" },
@@ -14,9 +15,37 @@ const NAV_ITEMS = [
   { href: "/nomination", label: "투표", icon: "🗳️" },
 ];
 
+function useLiveDayLabel(): string {
+  const [label, setLabel] = useState("LIVE");
+
+  useEffect(() => {
+    publicApi
+      .getActiveSeason()
+      .then((season) => {
+        if (!season) return;
+        const start = new Date(season.startDate);
+        const now = new Date();
+        // 날짜 차이만 계산 (시간 무시)
+        const startDay = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+        const nowDay = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffDays = Math.floor((nowDay - startDay) / (1000 * 60 * 60 * 24));
+        const dayNumber = diffDays + 1; // 1-based
+        if (dayNumber >= 1) {
+          setLabel(`LIVE - DAY ${dayNumber}`);
+        }
+      })
+      .catch(() => {
+        // API 실패 시 "LIVE"만 표시 — 그대로 유지
+      });
+  }, []);
+
+  return label;
+}
+
 export default function Navigation() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const liveDayLabel = useLiveDayLabel();
 
   return (
     <>
@@ -71,7 +100,7 @@ export default function Navigation() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                 </span>
-                <span className="text-green-700">LIVE</span>
+                <span className="text-green-700">{liveDayLabel}</span>
               </div>
             </div>
 
@@ -149,7 +178,7 @@ export default function Navigation() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                   </span>
-                  <span className="text-green-700 text-xs">LIVE - DAY 5</span>
+                  <span className="text-green-700 text-xs">{liveDayLabel}</span>
                 </div>
               </div>
             </motion.div>

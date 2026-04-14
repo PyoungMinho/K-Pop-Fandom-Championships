@@ -23,6 +23,9 @@ export class Score extends BaseCreateOnlyEntity {
   @Column({ type: "bigint" })
   points!: number;
 
+  @Column({ type: "smallint", default: 1 })
+  multiplier!: number;
+
   @Column({ type: "enum", enum: ScoreSource })
   source!: ScoreSource;
 

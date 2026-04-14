@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MOCK_TEAMS, MOCK_SEASON_TEAMS, MOCK_GAME_EVENT } from "@/lib/mock-data";
+import { publicApi, extractSeasonTeams, type SeasonTeamInfo, type ActiveGameEvent } from "@/lib/public-api";
 import TeamLogo from "@/components/TeamLogo";
 import Confetti from "@/components/Confetti";
 import { getSocket } from "@/lib/socket";
@@ -13,19 +13,14 @@ interface BatonStatus {
   count: number;
 }
 
-/* ──────────── Helpers ──────────── */
-function getSeasonTeamId(teamId: string): string {
-  return MOCK_SEASON_TEAMS.find((st) => st.teamId === teamId)?.id ?? teamId;
-}
-function getTeamBySeasonTeamId(stId: string) {
-  const st = MOCK_SEASON_TEAMS.find((s) => s.id === stId);
-  return MOCK_TEAMS.find((t) => t.id === st?.teamId) ?? MOCK_TEAMS[0];
-}
-
 /* ──────────── Component ──────────── */
 export default function RelayPage() {
   const [mounted, setMounted] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [seasonTeams, setSeasonTeams] = useState<SeasonTeamInfo[]>([]);
+  const [gameEvent, setGameEvent] = useState<ActiveGameEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null); // teamId
   const [myInviteCode, setMyInviteCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [batonCounts, setBatonCounts] = useState<BatonStatus[]>([]);
@@ -35,16 +30,41 @@ export default function RelayPage() {
   } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const team = MOCK_TEAMS.find((t) => t.id === selectedTeam);
-  const selectedStId = selectedTeam ? getSeasonTeamId(selectedTeam) : null;
+  // teamId -> SeasonTeamInfo
+  const findByTeamId = (teamId: string) =>
+    seasonTeams.find((st) => st.teamId === teamId) ?? null;
+
+  // seasonTeamId -> SeasonTeamInfo
+  const findBySeasonTeamId = (stId: string) =>
+    seasonTeams.find((st) => st.id === stId) ?? null;
+
+  const selectedSt = selectedTeamId ? findByTeamId(selectedTeamId) : null;
+  const selectedStId = selectedSt?.id ?? null;
+
+  /* ──────────── 초기 데이터 로드 ──────────── */
+  useEffect(() => {
+    setMounted(true);
+
+    Promise.all([
+      publicApi.getActiveSeason().catch(() => null),
+      publicApi.getActiveGameEvent().catch(() => null),
+    ]).then(([season, event]) => {
+      if (season) {
+        setSeasonTeams(extractSeasonTeams(season));
+      }
+      setGameEvent(event);
+      setLoading(false);
+    });
+  }, []);
 
   /* ──────────── WebSocket ──────────── */
   useEffect(() => {
-    setMounted(true);
+    if (!gameEvent || seasonTeams.length === 0) return;
+
     const socket = getSocket();
 
     // 초기 현황 요청
-    socket.emit("baton:status", { gameEventId: MOCK_GAME_EVENT.id });
+    socket.emit("baton:status", { gameEventId: gameEvent.id });
 
     socket.on("baton:status:update", (data: { counts: BatonStatus[] }) => {
       setBatonCounts(data.counts);
@@ -82,18 +102,17 @@ export default function RelayPage() {
       socket.off("baton:created");
       socket.off("baton:passed");
     };
-  }, []);
+  }, [gameEvent, seasonTeams]);
 
   /* ──────────── Handlers ──────────── */
   const handleCreateInvite = useCallback(() => {
-    if (!selectedStId) return;
+    if (!selectedStId || !gameEvent) return;
     const socket = getSocket();
     socket.emit("baton:create", {
-      gameEventId: MOCK_GAME_EVENT.id,
+      gameEventId: gameEvent.id,
       seasonTeamId: selectedStId,
-      ipHash: "browser",
     });
-  }, [selectedStId]);
+  }, [selectedStId, gameEvent]);
 
   const handleCopy = useCallback(() => {
     if (!myInviteCode) return;
@@ -106,42 +125,83 @@ export default function RelayPage() {
 
   /* ──────────── URL 초대 코드 감지 ──────────── */
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || seasonTeams.length === 0) return;
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     if (code) {
       const socket = getSocket();
-      socket.emit("baton:accept", {
-        inviteCode: code,
-        ipHash: "browser",
-      });
+      socket.emit("baton:accept", { inviteCode: code });
 
       socket.once(
         "baton:accepted",
-        (data: {
-          inviteCode: string;
-          isNew: boolean;
-          seasonTeamId: string;
-        }) => {
+        (data: { inviteCode: string; isNew: boolean; seasonTeamId: string }) => {
           setMyInviteCode(data.inviteCode);
-          // 해당 팀 자동 선택
-          const st = MOCK_SEASON_TEAMS.find((s) => s.id === data.seasonTeamId);
-          if (st) setSelectedTeam(st.teamId);
+          // 해당 팀 자동 선택 (seasonTeamId -> teamId)
+          const st = findBySeasonTeamId(data.seasonTeamId);
+          if (st) setSelectedTeamId(st.teamId);
         },
       );
     }
-  }, [mounted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, seasonTeams]);
 
   /* ──────────── Derived ──────────── */
-  const sortedTeams = MOCK_TEAMS.map((t) => {
-    const stId = getSeasonTeamId(t.id);
-    const bc = batonCounts.find((c) => c.seasonTeamId === stId);
-    return { ...t, seasonTeamId: stId, count: bc?.count ?? 0 };
-  }).sort((a, b) => b.count - a.count);
+  const sortedTeams = seasonTeams
+    .map((st) => {
+      const bc = batonCounts.find((c) => c.seasonTeamId === st.id);
+      return { ...st, count: bc?.count ?? 0 };
+    })
+    .sort((a, b) => b.count - a.count);
 
   const maxCount = Math.max(...sortedTeams.map((t) => t.count), 1);
 
   if (!mounted) return null;
+
+  /* ──────────── 로딩 상태 ──────────── */
+  if (loading) {
+    return (
+      <main className="min-h-screen pb-24 md:pb-8 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-bounce">🏃</div>
+          <p className="text-ink-muted font-semibold">데이터를 불러오는 중...</p>
+        </div>
+      </main>
+    );
+  }
+
+  /* ──────────── 활성 시즌 없음 ──────────── */
+  if (seasonTeams.length === 0) {
+    return (
+      <main className="min-h-screen pb-24 md:pb-8 pt-20 flex items-center justify-center">
+        <div className="text-center card-game max-w-sm mx-4">
+          <div className="text-5xl mb-4">🏕️</div>
+          <h2 className="text-xl font-bold mb-2">다음 운동회를 준비 중이에요!</h2>
+          <p className="text-ink-muted text-sm">
+            곧 새로운 시즌이 열릴 예정이에요.
+            <br />
+            바통을 들고 준비하고 계세요!
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  /* ──────────── 게임이벤트 없음 ──────────── */
+  if (!gameEvent) {
+    return (
+      <main className="min-h-screen pb-24 md:pb-8 pt-20 flex items-center justify-center">
+        <div className="text-center card-game max-w-sm mx-4">
+          <div className="text-5xl mb-4">⏳</div>
+          <h2 className="text-xl font-bold mb-2">잠깐! 박이 아직 준비 중이에요</h2>
+          <p className="text-ink-muted text-sm">
+            감독님이 박을 달고 있는 중이에요...
+            <br />
+            이어달리기 이벤트가 곧 시작돼요!
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen pb-24 md:pb-8 pt-20">
@@ -157,11 +217,11 @@ export default function RelayPage() {
             className="fixed top-20 left-1/2 -translate-x-1/2 z-50"
           >
             <div className="bg-white rounded-2xl shadow-xl px-6 py-4 flex items-center gap-3 border-2 border-sunny">
-              <span className="text-2xl">🏃‍♂️</span>
+              <span className="text-2xl">🏃</span>
               <div>
                 <div className="font-bold text-sm">새로운 팬이 바통을 이어받았습니다!</div>
                 <div className="text-xs text-ink-muted">
-                  {getTeamBySeasonTeamId(recentPass.seasonTeamId).name} · 체인 길이{" "}
+                  {findBySeasonTeamId(recentPass.seasonTeamId)?.name ?? ""} · 체인 길이{" "}
                   {recentPass.chainLength}
                 </div>
               </div>
@@ -178,7 +238,7 @@ export default function RelayPage() {
           className="text-center mb-8"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-mint/20 rounded-full mb-3">
-            <span className="text-sm">🏃‍♂️</span>
+            <span className="text-sm">🏃</span>
             <span className="text-sm font-bold text-mint-dark">이어달리기</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black">
@@ -202,7 +262,7 @@ export default function RelayPage() {
           <div className="space-y-3">
             {sortedTeams.map((t, i) => {
               const percent = (t.count / maxCount) * 100;
-              const isSelected = t.id === selectedTeam;
+              const isSelected = t.teamId === selectedTeamId;
               return (
                 <div key={t.id} className="flex items-center gap-3">
                   <span className="w-5 text-center font-bold text-sm text-ink-muted">
@@ -248,7 +308,7 @@ export default function RelayPage() {
         </motion.div>
 
         {/* Team Selection */}
-        {!selectedTeam ? (
+        {!selectedTeamId ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -258,24 +318,24 @@ export default function RelayPage() {
               응원할 팀을 선택하세요
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {MOCK_TEAMS.map((t, i) => (
+              {seasonTeams.map((st, i) => (
                 <motion.button
-                  key={t.id}
+                  key={st.id}
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.1 + i * 0.06 }}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => setSelectedTeam(t.id)}
+                  onClick={() => setSelectedTeamId(st.teamId)}
                   className="card-game flex flex-col items-center gap-3 py-6 cursor-pointer"
                 >
                   <TeamLogo
-                    name={t.name}
-                    shortName={t.shortName}
-                    colorCode={t.colorCode}
+                    name={st.name}
+                    shortName={st.shortName}
+                    colorCode={st.colorCode}
                     size="lg"
                   />
-                  <div className="font-bold">{t.name}</div>
+                  <div className="font-bold">{st.name}</div>
                 </motion.button>
               ))}
             </div>
@@ -286,19 +346,19 @@ export default function RelayPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <TeamLogo
-                  name={team!.name}
-                  shortName={team!.shortName}
-                  colorCode={team!.colorCode}
+                  name={selectedSt!.name}
+                  shortName={selectedSt!.shortName}
+                  colorCode={selectedSt!.colorCode}
                   size="md"
                 />
                 <div>
-                  <div className="font-bold text-lg">{team!.name}</div>
+                  <div className="font-bold text-lg">{selectedSt!.name}</div>
                   <div className="text-sm text-ink-muted">이어달리기 참가 중</div>
                 </div>
               </div>
               <button
                 onClick={() => {
-                  setSelectedTeam(null);
+                  setSelectedTeamId(null);
                   setMyInviteCode(null);
                 }}
                 className="text-sm font-semibold text-ink-muted hover:text-ink transition-colors"
@@ -315,7 +375,7 @@ export default function RelayPage() {
             >
               {!myInviteCode ? (
                 <div className="py-6">
-                  <div className="text-5xl mb-4">🏃‍♂️</div>
+                  <div className="text-5xl mb-4">🏃</div>
                   <h3 className="text-xl font-black mb-2">바통을 만들어 시작하세요!</h3>
                   <p className="text-sm text-ink-muted mb-6">
                     초대 링크를 만들고 친구들에게 공유하면,
@@ -345,11 +405,8 @@ export default function RelayPage() {
                   </div>
 
                   <div className="flex gap-3 justify-center">
-                    <button
-                      onClick={handleCopy}
-                      className="btn-primary px-6"
-                    >
-                      {copied ? "✅ 복사됨!" : "📋 링크 복사"}
+                    <button onClick={handleCopy} className="btn-primary px-6">
+                      {copied ? "복사됨!" : "링크 복사"}
                     </button>
                   </div>
 
@@ -357,29 +414,32 @@ export default function RelayPage() {
                   <div className="mt-8 pt-6 border-t border-gray-100">
                     <h4 className="font-bold text-sm mb-4 text-ink-muted">바통 릴레이 체인</h4>
                     <div className="flex items-center justify-center gap-2 flex-wrap">
-                      {Array.from({ length: Math.min(sortedTeams.find((t) => t.id === selectedTeam)?.count ?? 1, 20) }).map(
-                        (_, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                            style={{
-                              backgroundColor: team!.colorCode,
-                              opacity: 0.4 + (i / 20) * 0.6,
-                            }}
-                          >
-                            {i + 1}
-                          </motion.div>
+                      {Array.from({
+                        length: Math.min(
+                          sortedTeams.find((t) => t.teamId === selectedTeamId)?.count ?? 1,
+                          20,
                         ),
-                      )}
+                      }).map((_, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                          style={{
+                            backgroundColor: selectedSt!.colorCode,
+                            opacity: 0.4 + (i / 20) * 0.6,
+                          }}
+                        >
+                          {i + 1}
+                        </motion.div>
+                      ))}
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: [0, 1.2, 1] }}
                         transition={{ repeat: Infinity, duration: 2 }}
                         className="w-8 h-8 rounded-full border-2 border-dashed flex items-center justify-center text-sm"
-                        style={{ borderColor: team!.colorCode, color: team!.colorCode }}
+                        style={{ borderColor: selectedSt!.colorCode, color: selectedSt!.colorCode }}
                       >
                         +
                       </motion.div>

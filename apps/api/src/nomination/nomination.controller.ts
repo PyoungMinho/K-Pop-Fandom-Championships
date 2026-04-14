@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body, Param } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Req } from "@nestjs/common";
+import { createHash } from "crypto";
+import { Request } from "express";
 import { NominationService } from "./nomination.service";
 
 @Controller("nominations")
@@ -11,11 +13,21 @@ export class NominationController {
     body: {
       seasonId: string;
       teamId: string;
-      ipHash: string;
       fingerprint?: string;
     },
+    @Req() req: Request,
   ) {
-    return this.nominationService.nominate(body);
+    const forwarded = req.headers["x-forwarded-for"];
+    const rawIp = forwarded
+      ? (Array.isArray(forwarded) ? forwarded[0] : forwarded).split(",")[0].trim()
+      : (req.ip ?? "unknown");
+
+    const ipHash = createHash("sha256")
+      .update(rawIp + (process.env.IP_SALT || "kfc-default-salt"))
+      .digest("hex")
+      .substring(0, 16);
+
+    return this.nominationService.nominate({ ...body, ipHash });
   }
 
   @Get("results/:seasonId")

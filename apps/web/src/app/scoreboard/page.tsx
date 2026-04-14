@@ -105,9 +105,9 @@ export default function ScoreboardPage() {
         {/* No season */}
         {!loading && !season && (
           <div className="text-center py-20 text-ink-muted">
-            <div className="text-4xl mb-3">⏳</div>
-            <p className="font-semibold">진행 중인 시즌이 없습니다</p>
-            <p className="text-sm mt-1">Admin에서 시즌을 ACTIVE로 설정해주세요</p>
+            <div className="text-4xl mb-3">🏕️</div>
+            <p className="font-semibold">다음 운동회를 준비 중이에요!</p>
+            <p className="text-sm mt-1">곧 새로운 시즌이 열릴 예정이에요</p>
           </div>
         )}
 

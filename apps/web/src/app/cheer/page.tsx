@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MOCK_TEAMS, MOCK_SEASON_TEAMS, MOCK_GAME_EVENT, MOCK_CHEER_MESSAGES } from "@/lib/mock-data";
+import { publicApi, extractSeasonTeams, type SeasonTeamInfo, type ActiveGameEvent } from "@/lib/public-api";
 import TeamLogo from "@/components/TeamLogo";
 import { getSocket } from "@/lib/socket";
 import type { CheerMessage } from "@/lib/types";
@@ -13,15 +13,6 @@ interface TickerMessage {
   content: string;
   seasonTeamId: string;
   createdAt: string;
-}
-
-/* ──────────── Helpers ──────────── */
-function getSeasonTeamId(teamId: string): string {
-  return MOCK_SEASON_TEAMS.find((st) => st.teamId === teamId)?.id ?? teamId;
-}
-function getTeamBySeasonTeamId(stId: string) {
-  const st = MOCK_SEASON_TEAMS.find((s) => s.id === stId);
-  return MOCK_TEAMS.find((t) => t.id === st?.teamId) ?? MOCK_TEAMS[0];
 }
 
 /* ──────────── Ticker Item ──────────── */
@@ -49,20 +40,19 @@ function TickerItem({ msg, color }: { msg: TickerMessage; color: string }) {
 
 /* ──────────── Zone Component ──────────── */
 function CheerZone({
-  teamId,
+  st,
   messages,
   isSelected,
   onSelect,
 }: {
-  teamId: string;
+  st: SeasonTeamInfo;
   messages: TickerMessage[];
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const team = MOCK_TEAMS.find((t) => t.id === teamId)!;
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 최근 메시지 3개만 표시 (티커 효과)
+  // 최근 메시지 4개만 표시 (티커 효과)
   const recentMessages = messages.slice(0, 4);
 
   return (
@@ -71,34 +61,30 @@ function CheerZone({
       whileTap={{ scale: 0.99 }}
       onClick={onSelect}
       className={`relative rounded-2xl p-4 cursor-pointer transition-all overflow-hidden ${
-        isSelected
-          ? "ring-2 shadow-lg"
-          : "hover:shadow-md"
+        isSelected ? "ring-2 shadow-lg" : "hover:shadow-md"
       }`}
       style={{
-        background: `linear-gradient(135deg, ${team.colorCode}08, ${team.colorCode}15)`,
-        borderColor: isSelected ? team.colorCode : "transparent",
-        ...(isSelected
-          ? { boxShadow: `0 4px 20px ${team.colorCode}30` }
-          : {}),
+        background: `linear-gradient(135deg, ${st.colorCode}08, ${st.colorCode}15)`,
+        borderColor: isSelected ? st.colorCode : "transparent",
+        ...(isSelected ? { boxShadow: `0 4px 20px ${st.colorCode}30` } : {}),
       }}
     >
       {/* Zone Header */}
       <div className="flex items-center gap-2 mb-3">
         <TeamLogo
-          name={team.name}
-          shortName={team.shortName}
-          colorCode={team.colorCode}
+          name={st.name}
+          shortName={st.shortName}
+          colorCode={st.colorCode}
           size="sm"
         />
         <div>
-          <div className="font-bold text-sm">{team.name}</div>
+          <div className="font-bold text-sm">{st.name}</div>
           <div className="text-xs text-ink-muted">{messages.length}개 응원</div>
         </div>
         {isSelected && (
           <span
             className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full text-white"
-            style={{ backgroundColor: team.colorCode }}
+            style={{ backgroundColor: st.colorCode }}
           >
             선택됨
           </span>
@@ -110,7 +96,7 @@ function CheerZone({
         <AnimatePresence mode="popLayout">
           {recentMessages.length > 0 ? (
             recentMessages.map((msg) => (
-              <TickerItem key={msg.id} msg={msg} color={team.colorCode} />
+              <TickerItem key={msg.id} msg={msg} color={st.colorCode} />
             ))
           ) : (
             <motion.div
@@ -130,29 +116,51 @@ function CheerZone({
 /* ──────────── Main Page ──────────── */
 export default function CheerPage() {
   const [mounted, setMounted] = useState(false);
-  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [messages, setMessages] = useState<TickerMessage[]>(() =>
-    MOCK_CHEER_MESSAGES.map((m) => ({
-      id: m.id,
-      content: m.content,
-      seasonTeamId: m.seasonTeamId,
-      createdAt: m.createdAt,
-    })),
-  );
+  const [seasonTeams, setSeasonTeams] = useState<SeasonTeamInfo[]>([]);
+  const [gameEvent, setGameEvent] = useState<ActiveGameEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null); // teamId
+  const [messages, setMessages] = useState<TickerMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const team = selectedTeam ? MOCK_TEAMS.find((t) => t.id === selectedTeam) : null;
-  const selectedStId = selectedTeam ? getSeasonTeamId(selectedTeam) : null;
+  // teamId -> SeasonTeamInfo
+  const findByTeamId = (teamId: string) =>
+    seasonTeams.find((st) => st.teamId === teamId) ?? null;
+
+  // seasonTeamId -> SeasonTeamInfo
+  const findBySeasonTeamId = (stId: string) =>
+    seasonTeams.find((st) => st.id === stId) ?? null;
+
+  const selectedSt = selectedTeamId ? findByTeamId(selectedTeamId) : null;
+  const selectedStId = selectedSt?.id ?? null;
+
+  /* ──────────── 초기 데이터 로드 ──────────── */
+  useEffect(() => {
+    setMounted(true);
+
+    Promise.all([
+      publicApi.getActiveSeason().catch(() => null),
+      publicApi.getActiveGameEvent().catch(() => null),
+    ]).then(([season, event]) => {
+      if (season) {
+        setSeasonTeams(extractSeasonTeams(season));
+      }
+      setGameEvent(event);
+      setLoading(false);
+    });
+  }, []);
 
   /* ──────────── WebSocket ──────────── */
   useEffect(() => {
-    setMounted(true);
+    if (!gameEvent) return;
+
     const socket = getSocket();
 
     // 초기 메시지 로드
     socket.emit("cheer:load", {
-      gameEventId: MOCK_GAME_EVENT.id,
+      gameEventId: gameEvent.id,
       limit: 100,
     });
 
@@ -192,18 +200,17 @@ export default function CheerPage() {
       socket.off("cheer:messages");
       socket.off("cheer:new");
     };
-  }, []);
+  }, [gameEvent]);
 
   /* ──────────── Handlers ──────────── */
   const handleSend = () => {
-    if (!newMessage.trim() || !selectedStId) return;
+    if (!newMessage.trim() || !selectedStId || !gameEvent) return;
 
     const socket = getSocket();
     socket.emit("cheer:send", {
-      gameEventId: MOCK_GAME_EVENT.id,
+      gameEventId: gameEvent.id,
       seasonTeamId: selectedStId,
       content: newMessage.trim(),
-      ipHash: "browser",
     });
 
     // 낙관적 업데이트
@@ -219,19 +226,47 @@ export default function CheerPage() {
   };
 
   /* ──────────── Derived ──────────── */
-  const messagesByTeam: Record<string, TickerMessage[]> = {};
-  MOCK_SEASON_TEAMS.forEach((st) => {
-    messagesByTeam[st.teamId] = messages.filter(
-      (m) => m.seasonTeamId === st.id,
-    );
+  // seasonTeamId -> teamId의 메시지 그룹핑
+  const messagesBySeasonTeamId: Record<string, TickerMessage[]> = {};
+  seasonTeams.forEach((st) => {
+    messagesBySeasonTeamId[st.id] = messages.filter((m) => m.seasonTeamId === st.id);
   });
 
   // 선택된 팀의 메시지들 (전체 타임라인)
-  const selectedMessages = selectedTeam
+  const selectedMessages = selectedStId
     ? messages.filter((m) => m.seasonTeamId === selectedStId)
     : messages;
 
   if (!mounted) return null;
+
+  /* ──────────── 로딩 상태 ──────────── */
+  if (loading) {
+    return (
+      <main className="min-h-screen pb-24 md:pb-8 pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-bounce">📣</div>
+          <p className="text-ink-muted font-semibold">데이터를 불러오는 중...</p>
+        </div>
+      </main>
+    );
+  }
+
+  /* ──────────── 활성 시즌 없음 ──────────── */
+  if (seasonTeams.length === 0) {
+    return (
+      <main className="min-h-screen pb-24 md:pb-8 pt-20 flex items-center justify-center">
+        <div className="text-center card-game max-w-sm mx-4">
+          <div className="text-5xl mb-4">🏕️</div>
+          <h2 className="text-xl font-bold mb-2">다음 운동회를 준비 중이에요!</h2>
+          <p className="text-ink-muted text-sm">
+            곧 새로운 시즌이 열릴 예정이에요.
+            <br />
+            응원석이 열리면 제일 먼저 달려와 주세요!
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen pb-24 md:pb-8 pt-20">
@@ -250,6 +285,11 @@ export default function CheerPage() {
             <span className="gradient-text">구역별 응원석</span>
           </h1>
           <p className="text-ink-muted mt-2">팀 구역을 선택하고 응원을 보내보세요</p>
+          {!gameEvent && (
+            <p className="text-xs text-ink-muted mt-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1.5 inline-block">
+              현재 진행 중인 이벤트가 없어 메시지 전송이 제한될 수 있어요
+            </p>
+          )}
         </motion.div>
 
         {/* 구역별 응원석 그리드 */}
@@ -259,19 +299,19 @@ export default function CheerPage() {
           transition={{ delay: 0.1 }}
           className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6"
         >
-          {MOCK_TEAMS.map((t, i) => (
+          {seasonTeams.map((st, i) => (
             <motion.div
-              key={t.id}
+              key={st.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.05 + i * 0.04 }}
             >
               <CheerZone
-                teamId={t.id}
-                messages={messagesByTeam[t.id] ?? []}
-                isSelected={selectedTeam === t.id}
+                st={st}
+                messages={messagesBySeasonTeamId[st.id] ?? []}
+                isSelected={selectedTeamId === st.teamId}
                 onSelect={() =>
-                  setSelectedTeam((prev) => (prev === t.id ? null : t.id))
+                  setSelectedTeamId((prev) => (prev === st.teamId ? null : st.teamId))
                 }
               />
             </motion.div>
@@ -280,7 +320,7 @@ export default function CheerPage() {
 
         {/* Message Input */}
         <AnimatePresence>
-          {selectedTeam && team && (
+          {selectedTeamId && selectedSt && (
             <motion.div
               initial={{ opacity: 0, y: 10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: "auto" }}
@@ -290,13 +330,13 @@ export default function CheerPage() {
               <div className="card-game">
                 <div className="flex items-center gap-3 mb-3">
                   <TeamLogo
-                    name={team.name}
-                    shortName={team.shortName}
-                    colorCode={team.colorCode}
+                    name={selectedSt.name}
+                    shortName={selectedSt.shortName}
+                    colorCode={selectedSt.colorCode}
                     size="sm"
                   />
                   <span className="font-bold text-sm">
-                    {team.name} 응원석에 메시지 남기기
+                    {selectedSt.name} 응원석에 메시지 남기기
                   </span>
                 </div>
                 <div className="flex gap-2">
@@ -308,21 +348,20 @@ export default function CheerPage() {
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
                     placeholder="응원 메시지를 입력하세요..."
                     maxLength={200}
-                    className="flex-1 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm outline-none focus:ring-2 transition-all"
+                    disabled={!gameEvent}
+                    className="flex-1 px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-sm outline-none focus:ring-2 transition-all disabled:opacity-50"
                     style={{
-                      borderColor: newMessage ? team.colorCode : undefined,
+                      borderColor: newMessage ? selectedSt.colorCode : undefined,
                       // @ts-expect-error CSS custom property
-                      "--tw-ring-color": `${team.colorCode}30`,
+                      "--tw-ring-color": `${selectedSt.colorCode}30`,
                     }}
                   />
                   <button
                     onClick={handleSend}
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() || !gameEvent}
                     className="px-5 py-3 rounded-xl text-white font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{
-                      background: newMessage.trim()
-                        ? team.colorCode
-                        : "#ccc",
+                      background: newMessage.trim() && gameEvent ? selectedSt.colorCode : "#ccc",
                     }}
                   >
                     보내기
@@ -337,7 +376,7 @@ export default function CheerPage() {
         </AnimatePresence>
 
         {/* 선택 안내 */}
-        {!selectedTeam && (
+        {!selectedTeamId && (
           <div className="card text-center py-6 mb-6 bg-gray-50 border border-dashed border-gray-200">
             <p className="text-ink-muted text-sm">
               위 응원석을 클릭하면 메시지를 작성할 수 있어요
@@ -353,8 +392,8 @@ export default function CheerPage() {
         >
           <h3 className="font-bold mb-4 flex items-center gap-2">
             <span>💬</span>
-            {selectedTeam
-              ? `${team!.name} 응원 메시지`
+            {selectedTeamId
+              ? `${selectedSt!.name} 응원 메시지`
               : "전체 응원 메시지"}
             <span className="text-sm font-normal text-ink-muted">
               ({selectedMessages.length})
@@ -364,7 +403,8 @@ export default function CheerPage() {
           <div className="space-y-2">
             <AnimatePresence mode="popLayout">
               {selectedMessages.slice(0, 30).map((msg, i) => {
-                const msgTeam = getTeamBySeasonTeamId(msg.seasonTeamId);
+                const msgSt = findBySeasonTeamId(msg.seasonTeamId);
+                if (!msgSt) return null;
                 return (
                   <motion.div
                     key={msg.id}
@@ -374,19 +414,17 @@ export default function CheerPage() {
                     exit={{ opacity: 0, scale: 0.97 }}
                     transition={{ delay: i * 0.02 }}
                     className="flex items-start gap-3 p-3 rounded-xl transition-colors hover:bg-white"
-                    style={{
-                      background: `${msgTeam.colorCode}06`,
-                    }}
+                    style={{ background: `${msgSt.colorCode}06` }}
                   >
                     <TeamLogo
-                      name={msgTeam.name}
-                      shortName={msgTeam.shortName}
-                      colorCode={msgTeam.colorCode}
+                      name={msgSt.name}
+                      shortName={msgSt.shortName}
+                      colorCode={msgSt.colorCode}
                       size="sm"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-bold text-sm">{msgTeam.name}</span>
+                        <span className="font-bold text-sm">{msgSt.name}</span>
                         <span className="text-xs text-ink-muted">
                           {new Date(msg.createdAt).toLocaleTimeString("ko-KR", {
                             hour: "2-digit",
@@ -394,9 +432,7 @@ export default function CheerPage() {
                           })}
                         </span>
                       </div>
-                      <p className="text-sm leading-relaxed text-ink-light">
-                        {msg.content}
-                      </p>
+                      <p className="text-sm leading-relaxed text-ink-light">{msg.content}</p>
                     </div>
                   </motion.div>
                 );

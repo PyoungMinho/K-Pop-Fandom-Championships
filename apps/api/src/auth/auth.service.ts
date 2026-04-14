@@ -10,11 +10,8 @@ export class AuthService {
   ) {}
 
   async login(username: string, password: string) {
-    const adminUser = this.configService.get<string>("ADMIN_USERNAME", "admin");
-    const adminPass = this.configService.get<string>(
-      "ADMIN_PASSWORD",
-      "changeme",
-    );
+    const adminUser = this.configService.getOrThrow<string>("ADMIN_USERNAME");
+    const adminPass = this.configService.getOrThrow<string>("ADMIN_PASSWORD");
 
     if (username !== adminUser || password !== adminPass) {
       throw new UnauthorizedException("잘못된 관리자 계정입니다");

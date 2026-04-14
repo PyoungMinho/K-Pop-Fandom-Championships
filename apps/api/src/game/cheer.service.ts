@@ -1,23 +1,29 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import Redis from "ioredis";
+import sanitizeHtml from "sanitize-html";
 import { CheerMessage } from "./cheer-message.entity";
 import { Score } from "./score.entity";
+import { SeasonTeam } from "../season/season-team.entity";
 import { ScoreSource } from "../common/enums/score-source.enum";
+import { REDIS_CLIENT } from "../common/redis.provider";
 
 const CHEER_POINTS = 2; // 응원 메시지 1회당 점수
-const RATE_LIMIT_MS = 5_000; // 같은 IP 5초 쿨다운
+const RATE_LIMIT_SECONDS = 5; // 같은 IP 5초 쿨다운
+const CHEER_RL_KEY = (ipHash: string) => `cheer:rl:${ipHash}`;
 
 @Injectable()
 export class CheerService {
-  // 인메모리 rate limiter (IP → 마지막 전송 시각)
-  private rateLimitMap = new Map<string, number>();
-
   constructor(
     @InjectRepository(CheerMessage)
     private readonly cheerRepo: Repository<CheerMessage>,
     @InjectRepository(Score)
     private readonly scoreRepo: Repository<Score>,
+    @InjectRepository(SeasonTeam)
+    private readonly seasonTeamRepo: Repository<SeasonTeam>,
+    @Inject(REDIS_CLIENT)
+    private readonly redis: Redis,
   ) {}
 
   /**
@@ -30,18 +36,26 @@ export class CheerService {
     ipHash: string;
     fingerprint?: string;
   }): Promise<CheerMessage> {
-    // Rate limit 체크
-    const lastSent = this.rateLimitMap.get(data.ipHash) ?? 0;
-    if (Date.now() - lastSent < RATE_LIMIT_MS) {
+    // Redis 기반 Rate limit 체크 (SETNX + EXPIRE 원자적 처리)
+    const rlKey = CHEER_RL_KEY(data.ipHash);
+    const set = await this.redis.set(rlKey, "1", "EX", RATE_LIMIT_SECONDS, "NX");
+    if (set === null) {
+      // 키가 이미 존재 → 쿨다운 중
       throw new Error("RATE_LIMITED");
     }
-    this.rateLimitMap.set(data.ipHash, Date.now());
+
+    // XSS 방지: sanitize-html로 태그/속성 전체 제거 후 200자 제한
+    // allowedTags: [], allowedAttributes: {} → 텍스트 노드만 남김
+    const sanitizedContent = sanitizeHtml(data.content, {
+      allowedTags: [],
+      allowedAttributes: {},
+    }).slice(0, 200);
 
     // 메시지 저장
     const msg = this.cheerRepo.create({
       gameEventId: data.gameEventId,
       seasonTeamId: data.seasonTeamId,
-      content: data.content.slice(0, 200),
+      content: sanitizedContent,
       ipHash: data.ipHash,
       fingerprint: data.fingerprint ?? null,
       isVisible: true,
@@ -58,8 +72,21 @@ export class CheerService {
       fingerprint: data.fingerprint ?? null,
     });
     await this.scoreRepo.save(score);
+    await this.updateSeasonTeamScore(data.seasonTeamId);
 
     return saved;
+  }
+
+  private async updateSeasonTeamScore(seasonTeamId: string): Promise<void> {
+    const result = await this.scoreRepo
+      .createQueryBuilder("score")
+      .select("COALESCE(SUM(score.points), 0)", "total")
+      .where("score.seasonTeamId = :seasonTeamId", { seasonTeamId })
+      .getRawOne();
+
+    await this.seasonTeamRepo.update(seasonTeamId, {
+      totalScore: parseInt(result.total, 10),
+    });
   }
 
   /**

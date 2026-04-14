@@ -4,6 +4,7 @@ import { Repository } from "typeorm";
 import { randomBytes } from "crypto";
 import { BatonChain } from "./baton-chain.entity";
 import { Score } from "./score.entity";
+import { SeasonTeam } from "../season/season-team.entity";
 import { ScoreSource } from "../common/enums/score-source.enum";
 
 const BATON_POINTS = 5; // 바통 연결 1회당 점수
@@ -15,6 +16,8 @@ export class BatonService {
     private readonly batonRepo: Repository<BatonChain>,
     @InjectRepository(Score)
     private readonly scoreRepo: Repository<Score>,
+    @InjectRepository(SeasonTeam)
+    private readonly seasonTeamRepo: Repository<SeasonTeam>,
   ) {}
 
   /**
@@ -103,6 +106,7 @@ export class BatonService {
       fingerprint: data.fingerprint ?? null,
     });
     await this.scoreRepo.save(score);
+    await this.updateSeasonTeamScore(parent.seasonTeamId);
 
     const teamTotal = await this.getTeamBatonCount(
       parent.gameEventId,
@@ -171,6 +175,18 @@ export class BatonService {
     }
 
     return { chain, depth: baton.depth };
+  }
+
+  private async updateSeasonTeamScore(seasonTeamId: string): Promise<void> {
+    const result = await this.scoreRepo
+      .createQueryBuilder("score")
+      .select("COALESCE(SUM(score.points), 0)", "total")
+      .where("score.seasonTeamId = :seasonTeamId", { seasonTeamId })
+      .getRawOne();
+
+    await this.seasonTeamRepo.update(seasonTeamId, {
+      totalScore: parseInt(result.total, 10),
+    });
   }
 
   private generateCode(): string {

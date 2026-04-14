@@ -5,8 +5,9 @@
       "name": "web",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--workspace=apps/web"],
-      "port": 3000,
-      "autoPort": true
+      "port": 3100,
+      "autoPort": true,
+      "env": { "PORT": "3100" }
     }
   ]
 }

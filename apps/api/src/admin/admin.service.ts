@@ -180,6 +180,46 @@ export class AdminService {
     };
   }
 
+  // ═══════════ Public Game Event ═══════════
+
+  /**
+   * 현재 활성 시즌의 ACTIVE 상태 게임이벤트를 반환.
+   * ACTIVE가 없으면 가장 최근 SCHEDULED 이벤트를 반환한다.
+   */
+  async getActiveGameEvent() {
+    const season = await this.seasonRepo.findOne({
+      where: { status: "ACTIVE" as any },
+    });
+    if (!season) return null;
+
+    // ACTIVE 이벤트 우선
+    let event = await this.gameEventRepo.findOne({
+      where: { seasonId: season.id, status: "ACTIVE" as any },
+      order: { dayNumber: "DESC" },
+    });
+
+    // 없으면 SCHEDULED 중 가장 먼저 올 것
+    if (!event) {
+      event = await this.gameEventRepo.findOne({
+        where: { seasonId: season.id, status: "SCHEDULED" as any },
+        order: { dayNumber: "ASC" },
+      });
+    }
+
+    if (!event) return null;
+
+    return {
+      id: event.id,
+      seasonId: event.seasonId,
+      gameType: event.gameType,
+      dayNumber: event.dayNumber,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      status: event.status,
+      config: event.config,
+    };
+  }
+
   // ═══════════ Settings ═══════════
 
   async getAllSettings() {
@@ -202,7 +242,7 @@ export class AdminService {
   // ═══════════ Analytics ═══════════
 
   async getAnalytics() {
-    const [totalTeams, totalCheers, totalBatons, totalNominations] =
+    const [totalTeams, totalCheers, totalBatons, totalClickScore] =
       await Promise.all([
         this.teamRepo.count(),
         this.cheerRepo.count(),
@@ -228,7 +268,7 @@ export class AdminService {
     return {
       totalTeams,
       totalSeasons,
-      totalClicks: totalNominations,
+      totalClicks: totalClickScore,
       totalCheers,
       totalBatons,
       cheersByTeam,
